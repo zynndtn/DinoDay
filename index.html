@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DINO DAY</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Courier New', Courier, monospace; 
+            background: #000; 
+            transition: background 2s; 
+        }
+
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        
+        /* ENHANCED START SCREEN */
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1a3c0e 0%, #051000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+            color: white;
+            text-align: center;
+        }
+
+        .vibe-layer { position: absolute; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+
+        .ground-line {
+            position: absolute;
+            bottom: 0; width: 100%; height: 15vh;
+            background: linear-gradient(to top, #1a0f00, transparent);
+            z-index: 5;
+        }
+
+        .lava-river {
+            position: absolute;
+            bottom: 0; width: 200%; height: 5px;
+            background: orange;
+            box-shadow: 0 0 20px #ff4400, 0 0 40px #ff4400;
+            animation: moveLava 10s linear infinite;
+        }
+
+        .volcano-glow {
+            position: absolute;
+            bottom: -50px; left: 50%; transform: translateX(-50%);
+            width: 800px; height: 300px;
+            background: radial-gradient(circle, rgba(255, 68, 0, 0.15) 0%, transparent 70%);
+            filter: blur(40px);
+            animation: pulseGlow 3s infinite alternate;
+        }
+
+        .floating-element {
+            position: absolute;
+            opacity: 0.3;
+            animation: floatUp 12s infinite linear;
+        }
+
+        /* TYPOGRAPHY */
+        .title-box { z-index: 10; transform: translateY(-20px); }
+
+        .title-box h1 {
+            font-size: 9rem;
+            margin: 0;
+            color: #32CD32;
+            text-shadow: 10px 10px 0px #000, 0 0 80px rgba(50, 205, 50, 0.4);
+            letter-spacing: 20px;
+            line-height: 0.8;
+        }
+
+        .title-box h2 {
+            font-size: 3rem;
+            margin: 10px 0 0 0;
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            text-shadow: 4px 4px 0px #000;
+            font-style: italic;
+        }
+
+        /* GAME UI */
+        #ui { position: absolute; top: 20px; left: 20px; color: white; pointer-events: none; z-index: 100; display: none; }
+        .counter { font-size: 42px; font-weight: bold; text-shadow: 2px 2px 4px black; color: #00d4ff; }
+        #instruction { font-size: 28px; text-shadow: 1px 1px 3px black; margin-top: 10px; }
+
+        .entity { position: absolute; user-select: none; cursor: pointer; }
+        .fish { font-size: 60px; filter: drop-shadow(0 0 8px #00d4ff); transform: scaleX(-1); }
+
+        .dino { 
+            font-size: 300px; 
+            display: none; 
+            filter: drop-shadow(0 0 25px #32CD32);
+            left: 50%; bottom: 5vh; 
+            transform: translateX(-50%);
+            transition: font-size 0.3s, transform 0.1s;
+        }
+
+        #speech-bubble {
+            display: none;
+            position: absolute;
+            background: white;
+            border-radius: 35px;
+            padding: 25px 35px;
+            color: #333;
+            font-weight: bold;
+            font-size: 24px;
+            left: 50vw;
+            bottom: 68vh;
+            transform: translateX(-50%);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+            pointer-events: none;
+            z-index: 150;
+            width: 400px;
+            text-align: center;
+            border: 6px solid #32CD32;
+        }
+
+        #speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -30px; left: 50%;
+            border-width: 30px 25px 0;
+            border-style: solid;
+            border-color: white transparent;
+            transform: translateX(-50%);
+        }
+
+        /* BIRTHDAY MESSAGE BOX */
+        #birthday-msg { 
+            display: none; 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            text-align: center; color: gold;
+            background: rgba(0,0,0,0.96); 
+            padding: 50px; border-radius: 40px; 
+            border: 6px solid gold; z-index: 200; 
+            width: 95%; max-width: 1100px;
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        .bday-header {
+            font-size: 4.5vw;
+            white-space: nowrap;
+            margin-bottom: 50px;
+            text-shadow: 0 0 20px #ff0000;
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+
+        .birthday-photo {
+            width: 400px; 
+            height: 400px;
+            object-fit: cover;
+            border: 10px solid white;
+            border-radius: 35px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+        }
+
+        .personal-note {
+            font-size: 2.4rem;
+            color: #fff;
+            margin: 50px 0;
+            font-style: italic;
+            padding: 30px;
+            border-top: 4px solid gold;
+            border-bottom: 4px solid gold;
+        }
+
+        .btn-start { 
+            padding: 25px 70px; cursor: pointer; font-size: 2.2rem; 
+            border-radius: 80px; background: #32CD32; border: none; color: white;
+            font-weight: 1000; transition: 0.3s; box-shadow: 0 12px 0 #1e611e;
+            margin-top: 60px; letter-spacing: 5px;
+        }
+        .btn-start:hover { transform: translateY(-8px); background: #3deb3d; box-shadow: 0 20px 0 #1e611e; }
+
+        @keyframes moveLava { from { left: -100%; } to { left: 0%; } }
+        @keyframes pulseGlow { from { opacity: 0.2; transform: translateX(-50%) scale(0.9); } to { opacity: 0.6; transform: translateX(-50%) scale(1.1); } }
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.4; }
+            80% { opacity: 0.4; }
+            100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+        }
+        @keyframes glow { from { text-shadow: 0 0 10px #fff; } to { text-shadow: 0 0 30px #ff0000; } }
+    </style>
+</head>
+<body>
+
+<div id="start-screen">
+    <div class="vibe-layer" id="leaf-container"></div>
+    <div class="volcano-glow"></div>
+    <div class="ground-line"><div class="lava-river"></div></div>
+    
+    <div class="title-box">
+        <h1>THE<br>EVOLUTION</h1>
+        <h2>of Cedric the Dinosaur</h2>
+        <button class="btn-start" onclick="startGame()">BEGIN ADVENTURE</button>
+    </div>
+</div>
+
+<div id="ui">
+    <div class="counter">FISH: <span id="score">0</span> / 19</div>
+    <p id="instruction">LETS GO FISHING! CATCH 19 FISH!</p>
+</div>
+
+<div id="game-container"></div>
+<div id="speech-bubble"></div>
+
+<div id="birthday-msg">
+    <h1 class="bday-header">🎈 HAPPY BIRTHDAY! 🎈</h1>
+
+    <div class="personal-note">
+            "19 YEARS OF EVOLUTION"
+        </div>
+    
+    <div class="photo-gallery">
+        <div class="photo-row" style="display:flex; justify-content:center; gap:50px; margin-bottom: 50px;">
+            <img src="bday4.jpg" alt="1" class="birthday-photo">
+            <img src="bday2.jpg" alt="2" class="birthday-photo">
+        </div>
+
+        <div class="personal-note">
+            "To Cedric, the love of my life, my everything,
+            you are one of the biggest blessings in my life and I'm so grateful you were born. 
+            Thank you for existing, being around me and the people you love.
+            You are the best guy ever. You're gentle, sweet, patient, hardworking, kind, and more.
+            You're the type of guy that notices the little things like when I have a slight change in tone,
+            I could be hard to deal with but you're always there for me anyway. You're the type to help someone in need
+            like helping an old lady cross the street or always giving out to the less fortunate. You're the type that isn't afraid of being
+            himself and has such a humorous personality. You're the type that would wait and talk things out to fix conflicts no matter what.
+            You're the type that I can instantly see in a crowd even though I'm blind. You're the type to try and scare me whenever you're about to say something
+            but ends up saying something stupid instead. You're the type to always know how to cheer me up and do silly things anytime, anywhere.
+            You're the type to make my heart race in more ways than one. You're the type that makes me the happiest and tries to make life easier for me and I really appreciate that. 
+            What I'm trying to say is that you're the type - to be my type. That's why you should never question if I actually like you baby,
+            you're the only one in my eyes and there is more to you than what my words could ever convey. 
+            Thank you for being with me baby, you're the best boyfriend and bestfriend I could ever ask for, my all in one. 
+            I hope you get everything you want and more, you deserve the best. May God bless you, especially since I pray for you everyday. 
+            More birthdays to come too, for us to spend together ofcourse. Remember, I love you always in all ways. Happy Birthday baby! Enjoy your day!"
+        </div>
+
+            <div class="personal-note">
+            love, zizoo
+        </div>
+
+        <div class="photo-row" style="display:flex; justify-content:center; gap:50px;">
+            <img src="bday1.jpg" alt="3" class="birthday-photo">
+            <img src="bday3.jpg" alt="4" class="birthday-photo">
+        </div>
+    </div>
+
+    <button onclick="location.reload()" style="background: gold; color: black; box-shadow: 0 10px 0 #b8860b; padding: 25px 60px; font-size: 2rem; border-radius: 50px; border: none; font-weight: bold; margin: 60px 0; cursor: pointer;">REPLAY</button>
+</div>
+
+<script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(freq, type, duration, vol=0.1) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const soundEffects = {
+        pop: () => playSound(600, 'sine', 0.1),
+        roar: () => { playSound(70, 'sawtooth', 0.6, 0.25); playSound(100, 'triangle', 0.5, 0.15); },
+        fanfare: () => { [440, 554, 659, 880].forEach((f, i) => { setTimeout(() => playSound(f, 'triangle', 0.7, 0.15), i * 150); }); }
+    };
+
+    // DECORATION GENERATOR
+    const leafContainer = document.getElementById('leaf-container');
+    const icons = ['🌿', '🍃', '🦕', '🦴', '🔥', '🪨'];
+    for(let i=0; i<20; i++) {
+        const leaf = document.createElement('div');
+        leaf.className = 'floating-element';
+        leaf.innerText = icons[Math.floor(Math.random()*icons.length)];
+        leaf.style.left = Math.random() * 100 + 'vw';
+        leaf.style.fontSize = (20 + Math.random() * 40) + 'px';
+        leaf.style.animationDelay = (Math.random() * 12) + 's';
+        leafContainer.appendChild(leaf);
+    }
+
+    const container = document.getElementById('game-container');
+    const scoreEl = document.getElementById('score');
+    const instructionEl = document.getElementById('instruction');
+    const bdayMsg = document.getElementById('birthday-msg');
+    const bubble = document.getElementById('speech-bubble');
+    const ui = document.getElementById('ui');
+
+    let score = 0;
+    let gameActive = false;
+    let dinoSpawned = false;
+    let dialogueIndex = 0;
+    const TARGET_ENERGY = 19; 
+
+    const dinoLines = [
+        "...",
+        "RAAAWRRR!",
+        "Hi! Im Cedric the Dino. I love fish, and I-",
+        "Wait a damn minute...",
+        "Oh! I'm actually YOU in this game haha..",
+        "We don't need to introduce each other then!",
+        "I know you love fish too, dont you? ;)",
+        "Well I'll have you know, we have a total of 19 fish!",
+        "Do you know what that means?",
+        "It somehow means we're 19 years old! Haha!",
+        "Anyways, Zyann's pushing me to tell you something though...",
+        "Ugh, she's so bossy right?",
+        "Are you ready?",
+        "Alright! Click me again!"
+    ];
+
+    function startGame() {
+        audioCtx.resume();
+        document.getElementById('start-screen').style.display = 'none';
+        ui.style.display = 'block';
+        gameActive = true;
+        document.body.style.background = "linear-gradient(to bottom, #005c97, #001122)";
+        for(let i=0; i<6; i++) setTimeout(createFish, i * 1200);
+    }
+
+    function createFish() {
+        if (!gameActive || dinoSpawned) return;
+        const fish = document.createElement('div');
+        fish.className = 'entity fish';
+        fish.innerHTML = '🐟';
+        fish.style.top = (Math.random() * 70 + 10) + 'vh';
+        fish.style.left = '-100px';
+        container.appendChild(fish);
+        let posX = -100;
+        const moveInterval = setInterval(() => {
+            if (dinoSpawned) { clearInterval(moveInterval); fish.remove(); return; }
+            posX += 5; fish.style.left = posX + 'px';
+            if (posX > window.innerWidth + 100) { clearInterval(moveInterval); fish.remove(); if (gameActive) createFish(); }
+        }, 20);
+        fish.onclick = () => { soundEffects.pop(); score++; scoreEl.innerText = score; fish.remove(); if (score === TARGET_ENERGY) initiateDinoPhase(); else createFish(); };
+    }
+
+    function initiateDinoPhase() {
+        dinoSpawned = true;
+        instructionEl.innerText = "GIVE CEDRIC FISH TO EVOLVE!";
+        document.body.style.background = "#051a00"; 
+        const dino = document.createElement('div');
+        dino.className = 'entity dino';
+        dino.id = 'the-dino';
+        dino.innerHTML = '🦖';
+        dino.style.display = 'block';
+        dino.onclick = () => {
+            soundEffects.roar();
+            if (score > 0) {
+                score--; scoreEl.innerText = score;
+                dino.style.fontSize = (300 + (19 - score) * 10) + 'px';
+                if (score === 0) { instructionEl.innerText = "CLICK CEDRIC TO TALK!"; startDialogue(); }
+            } else { advanceDialogue(); }
+        };
+        container.appendChild(dino);
+    }
+
+    function startDialogue() { bubble.style.display = 'block'; bubble.innerText = dinoLines[0]; }
+    function advanceDialogue() {
+        dialogueIndex++;
+        const dino = document.getElementById('the-dino');
+        if (dialogueIndex < dinoLines.length) {
+            bubble.innerText = dinoLines[dialogueIndex];
+            dino.style.transform = 'translateX(-50%) translateY(-40px)';
+            setTimeout(() => dino.style.transform = 'translateX(-50%) translateY(0)', 100);
+        } else { bubble.style.display = 'none'; dino.remove(); triggerBirthday(); }
+    }
+
+    function triggerBirthday() {
+        soundEffects.fanfare();
+        gameActive = false;
+        document.body.style.background = "#2e004d"; 
+        bdayMsg.style.display = 'block'; ui.style.display = 'none';
+        for(let i=0; i<100; i++) setTimeout(createConfetti, i * 80);
+    }
+
+    function createConfetti() {
+        const c = document.createElement('div');
+        c.innerText = ['🍰', '✨', '🎁', '🎈', '🦖'][Math.floor(Math.random()*5)];
+        c.style.position = 'absolute';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.top = '-50px'; c.style.fontSize = '40px';
+        container.appendChild(c);
+        let pos = -50;
+        const fall = setInterval(() => { pos += 5; c.style.top = pos + 'px'; if (pos > window.innerHeight) { clearInterval(fall); c.remove(); } }, 20);
+    }
+</script>
+
+</body>
+</html>
